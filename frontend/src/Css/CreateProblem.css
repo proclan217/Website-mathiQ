@@ -1,0 +1,146 @@
+/* CreateProblem.css - Matching your existing design system */
+
+/* Base Styles */
+.create-problem-card {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 100, 200, 0.15);
+  border: 1px solid rgba(200, 220, 255, 0.5);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.create-problem-card h2 {
+  font-size: 2rem;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.create-problem-card h2::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(135deg, #3a7bd5 0%, #00b4db 100%);
+  margin: 0.8rem auto 0;
+  border-radius: 2px;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  border: 1px solid rgba(58, 123, 213, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3a7bd5;
+  box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.2);
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  border: 1px solid rgba(58, 123, 213, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3a7bd5;
+  box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.2);
+}
+
+textarea.form-control {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Button Styles */
+.submit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  margin-top: 1rem;
+  background: linear-gradient(135deg, #3a7bd5 0%, #00b4db 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  background-size: 220% auto;
+  background-position: 10% center;
+  box-shadow: 0 4px 16px rgba(58, 123, 213, 0.3);
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  background-position: 100% center;
+  filter: brightness(0.95);
+  box-shadow: 0 6px 20px rgba(58, 123, 213, 0.4);
+}
+
+.submit-btn:disabled {
+  background: #ccc;
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  border: none;
+}
+
+.alert-success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.alert-danger {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .create-problem-card {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .create-problem-card h2 {
+    font-size: 1.8rem;
+  }
+}
