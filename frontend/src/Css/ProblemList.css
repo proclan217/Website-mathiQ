@@ -396,3 +396,20 @@ h1 {
     justify-content: space-between;
   }
 }
+
+.daily-challenge {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #fef7e0;
+  border: 2px dashed #f1c40f;
+  border-radius: 12px;
+}
+.daily-challenge h2 {
+  margin-bottom: 1rem;
+  color: #f39c12;
+}
+.daily-challenge .problem-card.daily {
+  cursor: pointer;
+  background: #fffbea;
+  border-color: #f1c40f;
+}
