@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useActionState } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Outlet, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import Auth from './components/Auth';
 import Login from './Js/Login';
@@ -9,7 +9,6 @@ import Dashboard from './Js/Dashboard';
 import CreateProblem from './Js/CreateProblem';
 import Problem from './Js/Problem';
 import ProblemList from './Js/ProblemList';
-import { useLocation } from 'react-router-dom';
 
 const themes = {
   default: 'default-theme',
@@ -22,86 +21,110 @@ const themes = {
   candy: 'candy-theme'
 };
 
-
 function Layout({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [theme, setTheme] = useState("default");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  function toggleDrawer() {
+    setDrawerOpen(!drawerOpen);
+  }
 
   useEffect(() => {
-    document.body.classList.remove(...Object.values(themes));
+    // Remove all theme classes
+    Object.values(themes).forEach(themeClass => {
+      document.body.classList.remove(themeClass);
+    });
+    // Add the selected theme class
     document.body.classList.add(themes[theme]);
   }, [theme]);
 
-  const isActive = (path) => {
-    return location.pathname === path ? 'active' : '';
-  };
+  const isActive = (path) => (location.pathname === path ? 'active' : '');
 
   return (
     <div className="app-container">
       <header className="app-header">
         <div className="header-content">
-          <div className="logo-container" onClick={() => navigate('/dashboard')}>
+          <div className="logo-container" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
             <div className="math-symbol">∫</div>
             <h1 className="app-title">Math<span className="highlight">iQ</span></h1>
           </div>
-
+  
           <nav className="nav-links">
-            <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>
-              Dashboard
-            </Link>
-            <Link to="/problems" className={`nav-link ${isActive('/problems')}`}>
-              Problems
-            </Link>
+            <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
+            <Link to="/problems" className={`nav-link ${isActive('/problems')}`}>Problems</Link>
             {user?.role === 'admin' && (
-              <Link 
-                to="/create-problem" 
-                className={`nav-link ${isActive('/create-problem')}`}
-              >
-                Create Problem
-              </Link>
+              <Link to="/create-problem" className={`nav-link ${isActive('/create-problem')}`}>Create Problem</Link>
             )}
           </nav>
-
           <div className="header-right">
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              className="theme-selector"
-            >
-              <option value="default">Default</option>
-              <option value="sunset">Sunset</option>
-              <option value="space">Midnight Space</option>
-              <option value="morning">Morning Glow</option>
-              <option value="forest">Forest Mist</option>
-              <option value="neon">Neon Vibes</option>
-              <option value="ice">Ice Chill</option>
-              <option value="candy">Candy Floss</option>
-
-            </select>
-
-            {user && (
-              <div className="user-info">
-                <span className="welcome-message">Welcome, {user.username}</span>
-                {user.avatar && (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.username} 
-                    className="user-avatar"
-                    width="36"
-                    height="36"
-                  />
-                )}
-              </div>
-            )}
+            <button className="drawer-toggle" onClick={toggleDrawer}>
+              ☰
+            </button>
           </div>
         </div>
       </header>
-
+  
       <main className="app-main">
         <Outlet />
       </main>
-
+  
+      {/* Drawer Component */}
+      <div className={`drawer ${drawerOpen ? 'open' : ''}`}>
+        <div className="drawer-content">
+          <button className="close-drawer" onClick={toggleDrawer}>×</button>
+          
+          {user && (
+            <div className="drawer-user-info">
+              {user.avatar && (
+                <img
+                  src={user.avatar}
+                  alt={`${user.username} avatar`}
+                  className="drawer-user-avatar"
+                  width="60"
+                  height="60"
+                />
+              )}
+              <div className="drawer-user-details">
+                <h3>{user.username}</h3>
+                <p className="user-role">{user.role}</p>
+              </div>
+            </div>
+          )}
+  
+          <div className="theme-selector">
+            <h4>Theme Preferences</h4>
+            <select 
+              value={theme} 
+              onChange={(e) => setTheme(e.target.value)}
+              className="theme-dropdown"
+            >
+              {Object.keys(themes).map((themeKey) => (
+                <option key={themeKey} value={themeKey}>
+                  {themeKey.charAt(0).toUpperCase() + themeKey.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+  
+          <div className="drawer-actions">
+            <button className="logout-button" onClick={() => {
+              localStorage.removeItem('user');
+              navigate('/login');
+              toggleDrawer();
+            }}>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div 
+        className={`drawer-overlay ${drawerOpen ? 'visible' : ''}`} 
+        onClick={toggleDrawer}
+      />
+  
       <footer className="app-footer">
         <p>&copy; {new Date().getFullYear()} MathiQ | Visualizing Mathematical Beauty</p>
         <div className="footer-links">
@@ -129,7 +152,7 @@ function App() {
           <Route path="/login" element={<Login setUser={setUser} />} />
           <Route path="/signup" element={<Signup setUser={setUser} />} />
 
-          {/* Protected routes with layout */}
+          {/* Protected routes wrapped in Layout */}
           <Route element={<Layout user={user} />}>
             <Route path="/dashboard" element={<Dashboard user={user} />} />
             <Route path="/problems" element={<ProblemList user={user} />} />

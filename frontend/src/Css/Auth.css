@@ -68,10 +68,6 @@ body{
     border: 1px solid rgba(200, 220, 255, 0.5);
   }
   
-  .logo-container {
-    margin-bottom: 2rem;
-  }
-  
   .math-symbol {
     font-size: 4rem;
     color: #3a7bd5;

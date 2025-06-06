@@ -1,0 +1,15 @@
+            {/*<select
+              value={theme}
+              onChange={e => setTheme(e.target.value)}
+              className="theme-selector"
+              aria-label="Select theme"
+            >
+              <option value="default">Default</option>
+              <option value="sunset">Sunset</option>
+              <option value="space">Midnight Space</option>
+              <option value="morning">Morning Glow</option>
+              <option value="forest">Forest Mist</option>
+              <option value="neon">Neon Vibes</option>
+              <option value="ice">Ice Chill</option>
+              <option value="candy">Candy Floss</option>
+            </select>*/}

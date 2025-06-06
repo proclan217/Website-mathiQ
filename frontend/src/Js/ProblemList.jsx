@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import '../Css/ProblemList.css';
 
-function ProblemList() {
+function ProblemList({ user, theme, setTheme }) {
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedProblem, setSelectedProblem] = useState(null);
@@ -11,36 +11,107 @@ function ProblemList() {
   const [points, setPoints] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [savingPoints, setSavingPoints] = useState(false);
 
+  // Fetch problems and user preferences
   useEffect(() => {
-    async function fetchProblems() {
+    let cancelTokenSource = axios.CancelToken.source();
+
+    const fetchData = async () => {
       setLoading(true);
+      setFetchError(null);
       try {
         const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get('http://localhost:5000/api/problems', { headers });
-        setProblems(res.data);
+        const headers = token
+          ? {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            }
+          : { 'Content-Type': 'application/json' };
+
+        // Fetch problems
+        const problemsRes = await axios.get('http://localhost:5000/api/problems', {
+          headers,
+          cancelToken: cancelTokenSource.token,
+        });
+        setProblems(problemsRes.data);
+
+        // Fetch user preferences if token exists
+        if (token) {
+          try {
+            const userRes = await axios.get('http://localhost:5000/api/user/preferences', {
+              headers,
+              cancelToken: cancelTokenSource.token,
+            });
+            if (userRes.data.points != null) setPoints(userRes.data.points);
+            if (userRes.data.themePreference) setTheme(userRes.data.themePreference);
+          } catch (err) {
+            console.log('Preferences not loaded, using defaults');
+          }
+        }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch problems.');
+        if (!axios.isCancel(err)) {
+          setFetchError(err.response?.data?.message || 'Failed to fetch data.');
+        }
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchProblems();
-  }, []);
+    fetchData();
 
+    return () => {
+      cancelTokenSource.cancel('Component unmounted');
+    };
+  }, [setTheme]);
+
+  // Save preferences with debounce
+  useEffect(() => {
+    if (!user) return;
+
+    let timer = setTimeout(async () => {
+      setSavingPoints(true);
+      setSaveError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+
+        await axios.put(
+          'http://localhost:5000/api/user/preferences',
+          { points, themePreference: theme },
+          { headers }
+        );
+      } catch (err) {
+        console.error('Failed to save preferences:', err);
+        setSaveError('⚠️ Failed to save progress. Please check your connection.');
+      } finally {
+        setSavingPoints(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [points, theme, user]);
+
+  // Filter problems by search term
   const filteredProblems = problems.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase())
   );
 
   const normalize = (str) => {
-    return str
-      ?.toLowerCase()
-      .replace(/[^0-9a-z.\-+/=]/gi, '')
-      .replace(/^x=/, '')
-      .trim();
+    return (
+      str
+        ?.toLowerCase()
+        .replace(/[^0-9a-z.\-+/=]/gi, '')
+        .replace(/^x=/, '')
+        .trim() || ''
+    );
   };
 
   const tryEvaluate = (input) => {
@@ -52,7 +123,7 @@ function ProblemList() {
     }
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = useCallback(() => {
     if (!selectedProblem) return;
 
     if (userAnswer.trim() === '') {
@@ -80,57 +151,71 @@ function ProblemList() {
 
     const matchByNumber = correctNum !== null && userNum !== null && correctNum === userNum;
     const matchByString = normalizedCorrect === normalizedUser;
-    const numericMatch = correctVal !== null && userVal !== null && Math.abs(correctVal - userVal) < 0.0001;
+    const numericMatch =
+      correctVal !== null && userVal !== null && Math.abs(correctVal - userVal) < 0.0001;
 
     if (matchByNumber || matchByString || numericMatch) {
       let bonus = 0;
-      if (selectedProblem.difficulty.toLowerCase() === 'easy') bonus = 1;
-      else if (selectedProblem.difficulty.toLowerCase() === 'medium') bonus = 3;
-      else if (selectedProblem.difficulty.toLowerCase() === 'hard') bonus = 5;
+      switch (selectedProblem.difficulty.toLowerCase()) {
+        case 'easy':
+          bonus = 1;
+          break;
+        case 'medium':
+          bonus = 3;
+          break;
+        case 'hard':
+          bonus = 5;
+          break;
+        default:
+          bonus = 0;
+      }
 
       setPoints((prev) => prev + bonus);
       setFeedback(`✅ Correct! +${bonus} points`);
     } else {
       setFeedback('❌ Incorrect. Try again or check the solution.');
     }
-  };
+  }, [selectedProblem, userAnswer]);
 
-  if (loading) return (
-    <div className="loading-container">
-      <div className="math-symbol">∞</div>
-      <p>Loading problems...</p>
-    </div>
-  );
-  
-  if (error) return (
-    <div className="error-container">
-      <div className="math-symbol">≠</div>
-      <p>Error: {error}</p>
-      <button 
-        className="btn-extra"
-        onClick={() => window.location.reload()}
-      >
-        Try Again
-      </button>
-    </div>
-  );
+  // Render loading screen
+  if (loading)
+    return (
+      <div className="loading-container">
+        <div className="math-symbol">∞</div>
+        <p>Loading problems...</p>
+      </div>
+    );
+
+  // Render fetch error screen
+  if (fetchError)
+    return (
+      <div className="error-container">
+        <div className="math-symbol">≠</div>
+        <p>Error: {fetchError}</p>
+        <button className="btn-extra" onClick={() => window.location.reload()}>
+          Try Again
+        </button>
+      </div>
+    );
 
   return (
-    <div className="problem-list-page">
-      {/* Background animation would go here */}
-      
+    <div className={`problem-list-page ${theme}-theme`}>
       <div className="problem-list-container">
         <div className="problem-list-header">
           <div className="title-container">
             <div className="math-symbol">∑</div>
-            <h1 className='app-title'>Math <span className="highlight">Problems</span></h1>
+            <h1 className="app-title">
+              Math <span className="highlight">Problems</span>
+            </h1>
           </div>
-          
+
           <div className="header-controls">
             <div className="points-display">
-              <span>🎯</span> {points} points
+              <span>🎯</span> {points} points{' '}
+              {savingPoints && <span className="saving-indicator">Saving...</span>}{' '}
+              {saveError && <span className="error-indicator">{saveError}</span>}
             </div>
-            
+
             <button
               className="logout-btn"
               onClick={() => {
@@ -175,11 +260,15 @@ function ProblemList() {
                   <img src={p.imageUrl} alt={p.title} className="problem-image" />
                 )}
                 <h3>
-                  {p.title} <span className={`difficulty ${p.difficulty.toLowerCase()}`}>
+                  {p.title}{' '}
+                  <span className={`difficulty ${p.difficulty.toLowerCase()}`}>
                     ({p.difficulty})
                   </span>
                 </h3>
-                <div className="problem-description" dangerouslySetInnerHTML={{ __html: p.description }} />
+                <div
+                  className="problem-description"
+                  dangerouslySetInnerHTML={{ __html: p.description }}
+                />
               </div>
             ))}
           </div>
@@ -191,9 +280,7 @@ function ProblemList() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{selectedProblem.title}</h2>
-              <span className="difficulty-badge">
-                {selectedProblem.difficulty}
-              </span>
+              <span className="difficulty-badge">{selectedProblem.difficulty}</span>
             </div>
 
             {selectedProblem.imageUrl && (
@@ -204,7 +291,10 @@ function ProblemList() {
               />
             )}
 
-            <div className="problem-content" dangerouslySetInnerHTML={{ __html: selectedProblem.description }} />
+            <div
+              className="problem-content"
+              dangerouslySetInnerHTML={{ __html: selectedProblem.description }}
+            />
 
             {!showSolution ? (
               <>
@@ -215,7 +305,7 @@ function ProblemList() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   rows={3}
                 />
-                
+
                 {feedback && (
                   <div className={`feedback ${feedback.startsWith('✅') ? 'success' : 'error'}`}>
                     {feedback}
@@ -223,10 +313,7 @@ function ProblemList() {
                 )}
 
                 <div className="modal-actions">
-                  <button 
-                    className="btn-extra check-answer-btn"
-                    onClick={checkAnswer}
-                  >
+                  <button className="btn-extra check-answer-btn" onClick={checkAnswer}>
                     Submit Answer
                   </button>
                   <button
@@ -244,13 +331,11 @@ function ProblemList() {
                   <div className="solution-content">
                     {selectedProblem.solution || 'No solution provided.'}
                   </div>
-                  
+
                   {selectedProblem.answer && (
                     <>
                       <h3>Final Answer</h3>
-                      <div className="final-answer">
-                        {selectedProblem.answer}
-                      </div>
+                      <div className="final-answer">{selectedProblem.answer}</div>
                     </>
                   )}
                 </div>
