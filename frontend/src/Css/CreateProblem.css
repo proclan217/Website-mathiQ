@@ -144,3 +144,28 @@ textarea.form-control {
     font-size: 1.8rem;
   }
 }
+.tabs {
+display: flex;
+justify-content: center;
+margin-bottom: 1.5rem;
+gap: 1rem;
+}
+.tab-button {
+padding: 0.6rem 1.5rem;
+font-size: 1rem;
+font-weight: 600;
+border: none;
+border-radius: 30px;
+background: #ddd;
+color: #333;
+cursor: pointer;
+transition: background 0.3s ease;
+}
+.tab-button.active {
+background: linear-gradient(135deg, #3a7bd5 0%, #00b4db 100%);
+color: white;
+box-shadow: 0 4px 10px rgba(58, 123, 213, 0.4);
+}
+.tab-button:hover:not(.active) {
+background: #bbb;
+}

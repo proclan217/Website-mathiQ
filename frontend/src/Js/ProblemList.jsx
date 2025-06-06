@@ -14,14 +14,15 @@ function ProblemList({ user, theme, setTheme }) {
   const [fetchError, setFetchError] = useState(null);
   const [saveError, setSaveError] = useState(null);
   const [savingPoints, setSavingPoints] = useState(false);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
 
-  // Fetch problems and user preferences
   useEffect(() => {
-    let cancelTokenSource = axios.CancelToken.source();
+    const cancelTokenSource = axios.CancelToken.source();
 
     const fetchData = async () => {
       setLoading(true);
       setFetchError(null);
+
       try {
         const token = localStorage.getItem('token');
         const headers = token
@@ -31,26 +32,39 @@ function ProblemList({ user, theme, setTheme }) {
             }
           : { 'Content-Type': 'application/json' };
 
-        // Fetch problems
         const problemsRes = await axios.get('http://localhost:5000/api/problems', {
           headers,
           cancelToken: cancelTokenSource.token,
         });
-        setProblems(problemsRes.data);
 
-        // Fetch user preferences if token exists
+        const fetchedProblems = problemsRes.data;
+        setProblems(fetchedProblems);
+
         if (token) {
           try {
             const userRes = await axios.get('http://localhost:5000/api/user/preferences', {
               headers,
               cancelToken: cancelTokenSource.token,
             });
+
             if (userRes.data.points != null) setPoints(userRes.data.points);
             if (userRes.data.themePreference) setTheme(userRes.data.themePreference);
           } catch (err) {
             console.log('Preferences not loaded, using defaults');
           }
         }
+
+        // Daily Challenge logic
+        try {
+          const dailyRes = await axios.get('http://localhost:5000/api/daily-challenge', { headers });
+          if (dailyRes.data && dailyRes.data._id) {
+            setDailyChallenge(dailyRes.data);
+          }
+        } catch (err) {
+          console.warn('Could not fetch daily challenge:', err);
+        }
+        
+
       } catch (err) {
         if (!axios.isCancel(err)) {
           setFetchError(err.response?.data?.message || 'Failed to fetch data.');
@@ -62,18 +76,16 @@ function ProblemList({ user, theme, setTheme }) {
 
     fetchData();
 
-    return () => {
-      cancelTokenSource.cancel('Component unmounted');
-    };
+    return () => cancelTokenSource.cancel('Component unmounted');
   }, [setTheme]);
 
-  // Save preferences with debounce
   useEffect(() => {
     if (!user) return;
 
-    let timer = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setSavingPoints(true);
       setSaveError(null);
+
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -99,11 +111,6 @@ function ProblemList({ user, theme, setTheme }) {
     return () => clearTimeout(timer);
   }, [points, theme, user]);
 
-  // Filter problems by search term
-  const filteredProblems = problems.filter((p) =>
-    p.title.toLowerCase().includes(search.toLowerCase())
-  );
-
   const normalize = (str) => {
     return (
       str
@@ -116,7 +123,6 @@ function ProblemList({ user, theme, setTheme }) {
 
   const tryEvaluate = (input) => {
     try {
-      // eslint-disable-next-line no-new-func
       return Function('"use strict";return (' + input + ')')();
     } catch {
       return null;
@@ -177,17 +183,20 @@ function ProblemList({ user, theme, setTheme }) {
     }
   }, [selectedProblem, userAnswer]);
 
-  // Render loading screen
-  if (loading)
+  const filteredProblems = problems.filter((p) =>
+    p.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) {
     return (
       <div className="loading-container">
         <div className="math-symbol">∞</div>
         <p>Loading problems...</p>
       </div>
     );
+  }
 
-  // Render fetch error screen
-  if (fetchError)
+  if (fetchError) {
     return (
       <div className="error-container">
         <div className="math-symbol">≠</div>
@@ -197,6 +206,7 @@ function ProblemList({ user, theme, setTheme }) {
         </button>
       </div>
     );
+  }
 
   return (
     <div className={`problem-list-page ${theme}-theme`}>
@@ -212,21 +222,45 @@ function ProblemList({ user, theme, setTheme }) {
           <div className="header-controls">
             <div className="points-display">
               <span>🎯</span> {points} points{' '}
-              {savingPoints && <span className="saving-indicator">Saving...</span>}{' '}
+              {savingPoints && <span className="saving-indicator">Saving...</span>}
               {saveError && <span className="error-indicator">{saveError}</span>}
             </div>
-
-            <button
-              className="logout-btn"
-              onClick={() => {
-                localStorage.removeItem('token');
-                window.location.href = '/login';
-              }}
-            >
-              Logout
-            </button>
           </div>
         </div>
+
+        {/* Daily Challenge */}
+        {dailyChallenge && (
+          <div className="daily-challenge">
+            <h2>🌞 Daily Challenge</h2>
+            <div
+              className="problem-card daily"
+              onClick={() => {
+                setSelectedProblem(dailyChallenge);
+                setUserAnswer('');
+                setFeedback('');
+                setShowSolution(false);
+              }}
+            >
+              {dailyChallenge.imageUrl && (
+                <img
+                  src={dailyChallenge.imageUrl}
+                  alt={dailyChallenge.title}
+                  className="problem-image"
+                />
+              )}
+              <h3>
+                {dailyChallenge.title}{' '}
+                <span className={`difficulty ${dailyChallenge.difficulty.toLowerCase()}`}>
+                  ({dailyChallenge.difficulty})
+                </span>
+              </h3>
+              <div
+                className="problem-description"
+                dangerouslySetInnerHTML={{ __html: dailyChallenge.description }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="search-container">
           <input
