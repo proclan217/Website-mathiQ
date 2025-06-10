@@ -9,6 +9,7 @@ import Dashboard from './Js/Dashboard';
 import CreateProblem from './Js/CreateProblem';
 import Problem from './Js/Problem';
 import ProblemList from './Js/ProblemList';
+import DetailedProgress from './Js/DetailedProgress'; // <-- Add this import
 
 const themes = {
   default: 'default-theme',
@@ -70,69 +71,104 @@ function Layout({ user }) {
         <Outlet />
       </main>
   
-      {/* Drawer Component */}
-      <div className={`drawer ${drawerOpen ? 'open' : ''}`}>
-        <div className="drawer-content">
-          <button className="close-drawer" onClick={toggleDrawer}>×</button>
-          
-          {user && (
-            <div className="drawer-user-info">
-              {user.avatar && (
-                <img
-                  src={user.avatar}
-                  alt={`${user.username} avatar`}
-                  className="drawer-user-avatar"
-                  width="60"
-                  height="60"
-                />
-              )}
-              <div className="drawer-user-details">
-                <h3>{user.username}</h3>
-                <p className="user-role">{user.role}</p>
-              </div>
-            </div>
-          )}
-  
-          <div className="theme-selector">
-            <h4>Theme Preferences</h4>
-            <select 
-              value={theme} 
-              onChange={(e) => setTheme(e.target.value)}
-              className="theme-dropdown"
-            >
-              {Object.keys(themes).map((themeKey) => (
-                <option key={themeKey} value={themeKey}>
-                  {themeKey.charAt(0).toUpperCase() + themeKey.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-  
-          <div className="drawer-actions">
-            <button className="logout-button" onClick={() => {
-              localStorage.removeItem('user');
-              navigate('/login');
-              toggleDrawer();
-            }}>
-              Sign Out
-            </button>
-          </div>
+      <div className={`drawer ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen} aria-expanded={drawerOpen}>
+  <div className="drawer-content">
+    <button className="close-drawer" onClick={toggleDrawer} aria-label="Close Drawer">
+      ×
+    </button>
+
+    {user && (
+      <div className="drawer-user-info">
+        {user.avatar ? (
+          <img
+            src={user.avatar}
+            alt={`${user.username}'s avatar`}
+            className="drawer-user-avatar"
+            width="60"
+            height="60"
+          />
+        ) : (
+          <div className="drawer-user-avatar-placeholder">👤</div>
+        )}
+        <div className="drawer-user-details">
+          <h3>{user.username}</h3>
+          <p className="user-role">{user.role}</p>
         </div>
       </div>
+    )}
+
+    <div className="theme-selector">
+      <h4>Theme Preferences</h4>
+      <select
+        value={theme}
+        onChange={(e) => setTheme(e.target.value)}
+        className="theme-dropdown"
+        aria-label="Select Theme"
+      >
+        {Object.keys(themes).map((themeKey) => (
+          <option key={themeKey} value={themeKey}>
+            {themeKey.charAt(0).toUpperCase() + themeKey.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="drawer-actions">
+      <button
+        className="logout-button"
+        onClick={() => {
+          localStorage.removeItem('user');
+          navigate('/login');
+          toggleDrawer();
+        }}
+        aria-label="Sign Out"
+      >
+        🚪 Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<div
+  className={`drawer-overlay ${drawerOpen ? 'visible' : ''}`}
+  onClick={toggleDrawer}
+  aria-hidden={!drawerOpen}
+/>     
+
       
       <div 
         className={`drawer-overlay ${drawerOpen ? 'visible' : ''}`} 
         onClick={toggleDrawer}
       />
   
-      <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} MathiQ | Visualizing Mathematical Beauty</p>
-        <div className="footer-links">
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Service</a>
-          <a href="/contact">Contact Us</a>
-        </div>
-      </footer>
+  <footer className="app-footer">
+  <div className="footer-content">
+    <p>&copy; {new Date().getFullYear()} MathiQ | Visualizing Mathematical Beauty</p>
+    <div className="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/contact">Contact Us</a>
+    </div>
+    <div className="social-media-links">
+      <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+        🌐 Facebook
+      </a>
+      <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+        🌐 Twitter
+      </a>
+      <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+        🌐 Instagram
+      </a>
+    </div>
+  </div>
+  <button
+    className="back-to-top"
+    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    aria-label="Back to Top"
+  >
+    ⬆ Back to Top
+  </button>
+</footer>
     </div>
   );
 }
@@ -157,6 +193,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard user={user} />} />
             <Route path="/problems" element={<ProblemList user={user} />} />
             <Route path="/problems/:id" element={<Problem user={user} />} />
+            <Route path="/progress" element={<DetailedProgress user={user} />} /> 
             <Route path="/create-problem" element={<CreateProblem user={user} />} />
           </Route>
         </Routes>

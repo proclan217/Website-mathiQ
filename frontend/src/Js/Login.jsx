@@ -6,13 +6,13 @@ import '../Css/AuthForm.css';
 export default function Login({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await axios.post('https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api/login', {
         email,
         password
       }, {
@@ -29,7 +29,9 @@ export default function Login({ setUser }) {
 
     } catch (error) {
       if (error.response) {
-        alert(error.response.data.message || 'Login failed');
+        const message = error.response.data.message || 'Login failed';
+        setError(message);
+        alert(message);      
       } else if (error.request) {
         alert('No response from server');
       } else {

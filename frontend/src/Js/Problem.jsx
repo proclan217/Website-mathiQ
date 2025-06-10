@@ -13,7 +13,7 @@ function Problem() {
     async function fetchProblem() {
       setLoading(true);
       try {
-        const response = await axios.get(`http://192.168.0.152:5000/api/problems/${id}solutions`);
+        const response = await axios.get(`https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api/problems/${id}solutions`);
         setProblem(response.data);
       } catch (err) {
         console.error('Error fetching problem:', err);

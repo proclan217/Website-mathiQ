@@ -1,31 +1,56 @@
 /* Base Styles */
-.problem-list-page {
-  position: relative;
+..problem-list-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centers children horizontally */
+  justify-content: flex-start; /* top-align vertically, change to center if you want vertical centering */
   width: 100%;
   min-height: 100vh;
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
 }
 
+/* Keep max width and horizontal centering */
 .problem-list-container {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
+  box-sizing: border-box;
 }
 
-/* Header Styles */
+/* Header centering and spacing */
 .problem-list-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* space between title and controls */
   align-items: center;
+  width: 100%; /* full width inside container */
+  max-width: 1200px;
   margin-bottom: 2rem;
+  box-sizing: border-box;
 }
 
+/* To align the title and math symbol nicely */
 .title-container {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* Header controls align */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Make sure search container is full width within container */
+.search-container {
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 2rem;
 }
 
 .math-symbol {
@@ -244,6 +269,17 @@ h1 {
 .modal-header h2 {
   margin: 0;
   color: #333;
+}
+
+.modal .problem-content {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.modal .katex-display {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
 }
 
 .difficulty-badge {

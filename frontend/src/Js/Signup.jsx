@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../Css/AuthForm.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api';
 
 export default function Signup() {
   const [username, setUsername] = useState('');

@@ -3,10 +3,11 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import '../Css/CreateProblem.css';
+import MathInput from '../components/MathInput';
 
 const CreateProblem = () => {
   const [activeTab, setActiveTab] = useState('problem');
-  
+
   const [problemData, setProblemData] = useState({
     title: '',
     category: 'algebra',
@@ -18,7 +19,7 @@ const CreateProblem = () => {
 
   const [dailyChallengeData, setDailyChallengeData] = useState({
     title: '',
-    date: new Date().toISOString().split('T')[0], // Default to today
+    date: new Date().toISOString().split('T')[0],
     difficulty: 'easy',
     description: '',
     imageUrl: '',
@@ -50,7 +51,7 @@ const CreateProblem = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:5000/api/${endpoint}`,
+        `https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api/${endpoint}`,
         formData,
         {
           headers: {
@@ -61,12 +62,11 @@ const CreateProblem = () => {
         }
       );
 
-      setMessage({ 
-        text: `${type === 'problem' ? 'Problem' : 'Daily Challenge'} created successfully!`, 
-        variant: 'success' 
+      setMessage({
+        text: `${type === 'problem' ? 'Problem' : 'Daily Challenge'} created successfully!`,
+        variant: 'success'
       });
 
-      // Reset form
       if (type === 'problem') {
         setProblemData({
           title: '',
@@ -89,9 +89,11 @@ const CreateProblem = () => {
       }
 
       setTimeout(() => {
-        navigate(type === 'problem' 
-          ? `/problems/${response.data._id}` 
-          : `/dailychallenges/${response.data._id || response.data.challenge._id}`);
+        navigate(
+          type === 'problem'
+            ? `/problems/${response.data._id}`
+            : `/dailychallenges/${response.data._id || response.data.challenge._id}`
+        );
       }, 2000);
     } catch (error) {
       console.error('Error:', error);
@@ -109,56 +111,56 @@ const CreateProblem = () => {
       <div className="problem-list-container">
         <Card className="create-problem-card">
           <h2>Create New Math Problem</h2>
-          {/* Tabs */}
-          <div className="tabs">
-            <button
-              className={`tab-button ${activeTab === 'problem' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('problem');
-                setMessage({ text: '', variant: '' });
-              }}
+
+          <div className="tab-buttons mb-3">
+            <Button
+              variant={activeTab === 'problem' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('problem')}
+              className="me-2"
             >
-              Create Problem
-            </button>
-            <button
-              className={`tab-button ${activeTab === 'dailyChallenge' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('dailyChallenge');
-                setMessage({ text: '', variant: '' });
-              }}
+              Problem
+            </Button>
+            <Button
+              variant={activeTab === 'dailyChallenge' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('dailyChallenge')}
             >
-              Create Daily Challenge
-            </button>
+              Daily Challenge
+            </Button>
           </div>
 
           {message.text && (
-            <Alert variant={message.variant} onClose={() => setMessage({ text: '', variant: '' })} dismissible>
-              {message.text}
-            </Alert>
+            <Alert variant={message.variant}>{message.text}</Alert>
           )}
 
           {activeTab === 'problem' && (
             <Form onSubmit={(e) => handleSubmit(e, 'problem')}>
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Title</Form.Label>
+                <Form.Label>Title</Form.Label>
                 <Form.Control
                   type="text"
                   name="title"
                   value={problemData.title}
                   onChange={(e) => handleChange(e, 'problem')}
                   required
-                  className="form-control"
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Category</Form.Label>
+                <Form.Label>Description</Form.Label>
+                <MathInput
+                  value={problemData.description}
+                  onChange={(value) => setProblemData(prev => ({ ...prev, description: value }))}
+                  rows={5}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Category</Form.Label>
                 <Form.Select
                   name="category"
                   value={problemData.category}
                   onChange={(e) => handleChange(e, 'problem')}
                   required
-                  className="form-select"
                 >
                   <option value="algebra">Algebra</option>
                   <option value="geometry">Geometry</option>
@@ -168,13 +170,12 @@ const CreateProblem = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Difficulty</Form.Label>
+                <Form.Label>Difficulty</Form.Label>
                 <Form.Select
                   name="difficulty"
                   value={problemData.difficulty}
                   onChange={(e) => handleChange(e, 'problem')}
                   required
-                  className="form-select"
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
@@ -183,44 +184,26 @@ const CreateProblem = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  name="description"
-                  rows={5}
-                  value={problemData.description}
-                  onChange={(e) => handleChange(e, 'problem')}
-                  required
-                  className="form-control"
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label className="form-label">Image URL (optional)</Form.Label>
+                <Form.Label>Image URL (optional)</Form.Label>
                 <Form.Control
                   type="url"
                   name="imageUrl"
                   value={problemData.imageUrl}
                   onChange={(e) => handleChange(e, 'problem')}
                   placeholder="https://example.com/image.png"
-                  className="form-control"
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Solution</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  name="solution"
-                  rows={4}
+                <Form.Label>Solution</Form.Label>
+                <MathInput
                   value={problemData.solution}
-                  onChange={(e) => handleChange(e, 'problem')}
-                  required
-                  className="form-control"
+                  onChange={(value) => setProblemData(prev => ({ ...prev, solution: value }))}
+                  rows={4}
                 />
               </Form.Group>
 
-              <Button type="submit" disabled={loading} className="submit-btn">
+              <Button type="submit" disabled={loading}>
                 {loading ? 'Creating...' : 'Create Problem'}
               </Button>
             </Form>
@@ -229,37 +212,34 @@ const CreateProblem = () => {
           {activeTab === 'dailyChallenge' && (
             <Form onSubmit={(e) => handleSubmit(e, 'dailyChallenge')}>
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Title</Form.Label>
+                <Form.Label>Title</Form.Label>
                 <Form.Control
                   type="text"
                   name="title"
                   value={dailyChallengeData.title}
                   onChange={(e) => handleChange(e, 'dailyChallenge')}
                   required
-                  className="form-control"
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Date</Form.Label>
+                <Form.Label>Date</Form.Label>
                 <Form.Control
                   type="date"
                   name="date"
                   value={dailyChallengeData.date}
                   onChange={(e) => handleChange(e, 'dailyChallenge')}
                   required
-                  className="form-control"
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Difficulty</Form.Label>
+                <Form.Label>Difficulty</Form.Label>
                 <Form.Select
                   name="difficulty"
                   value={dailyChallengeData.difficulty}
                   onChange={(e) => handleChange(e, 'dailyChallenge')}
                   required
-                  className="form-select"
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
@@ -268,44 +248,35 @@ const CreateProblem = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  name="description"
-                  rows={5}
+                <Form.Label>Description</Form.Label>
+                <MathInput
                   value={dailyChallengeData.description}
-                  onChange={(e) => handleChange(e, 'dailyChallenge')}
-                  required
-                  className="form-control"
+                  onChange={(value) => setDailyChallengeData(prev => ({ ...prev, description: value }))}
+                  rows={5}
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Image URL (optional)</Form.Label>
+                <Form.Label>Image URL (optional)</Form.Label>
                 <Form.Control
                   type="url"
                   name="imageUrl"
                   value={dailyChallengeData.imageUrl}
                   onChange={(e) => handleChange(e, 'dailyChallenge')}
                   placeholder="https://example.com/image.png"
-                  className="form-control"
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="form-label">Solution</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  name="solution"
-                  rows={4}
+                <Form.Label>Solution</Form.Label>
+                <MathInput
                   value={dailyChallengeData.solution}
-                  onChange={(e) => handleChange(e, 'dailyChallenge')}
-                  required
-                  className="form-control"
+                  onChange={(value) => setDailyChallengeData(prev => ({ ...prev, solution: value }))}
+                  rows={4}
                 />
               </Form.Group>
 
-              <Button type="submit" disabled={loading} className="submit-btn">
+              <Button type="submit" disabled={loading}>
                 {loading ? 'Creating...' : 'Create Daily Challenge'}
               </Button>
             </Form>

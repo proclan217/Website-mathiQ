@@ -1,6 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import MathInput from '../components/MathInput';
+import 'katex/dist/katex.min.css';
+import { simplify, parse, evaluate } from 'mathjs';
+import TeX from '@matejmazur/react-katex';
 import '../Css/ProblemList.css';
+
+const API_BASE_URL = 'https://mathiq-eqcaybr35-proclan217s-projects.vercel.app';
 
 function ProblemList({ user, theme, setTheme }) {
   const [problems, setProblems] = useState([]);
@@ -16,6 +22,24 @@ function ProblemList({ user, theme, setTheme }) {
   const [savingPoints, setSavingPoints] = useState(false);
   const [dailyChallenge, setDailyChallenge] = useState(null);
 
+  // Helper to render math blocks/inline inside a string
+  const renderWithMath = (content) => {
+    if (!content) return null;
+    const parts = content.split(/(\$\$.*?\$\$|\$.*?\$)/g);
+    return parts.map((part, i) => {
+      if (!part) return null;
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2).trim();
+        return <TeX key={i} block math={math} />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
+        const math = part.slice(1, -1).trim();
+        return <TeX key={i} math={math} />;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  // Fetch problems, daily challenge and user prefs on mount or theme change
   useEffect(() => {
     const cancelTokenSource = axios.CancelToken.source();
 
@@ -32,42 +56,27 @@ function ProblemList({ user, theme, setTheme }) {
             }
           : { 'Content-Type': 'application/json' };
 
-        const problemsRes = await axios.get('http://localhost:5000/api/problems', {
-          headers,
-          cancelToken: cancelTokenSource.token,
-        });
+        // Fetch problems and daily challenge in parallel
+        const [problemsRes, dailyRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/problems`, { headers, cancelToken: cancelTokenSource.token }),
+          axios.get(`${API_BASE_URL}/api/dailychallenges`, { headers, cancelToken: cancelTokenSource.token }),
+        ]);
 
-        const fetchedProblems = problemsRes.data;
-        setProblems(fetchedProblems);
+        setProblems(problemsRes.data);
+        if (dailyRes.data?._id) setDailyChallenge(dailyRes.data);
 
+        // Fetch user preferences if logged in
         if (token) {
           try {
-            const userRes = await axios.get('http://localhost:5000/api/user/preferences', {
-              headers,
-              cancelToken: cancelTokenSource.token,
-            });
-
-            if (userRes.data.points != null) setPoints(userRes.data.points);
-            if (userRes.data.themePreference) setTheme(userRes.data.themePreference);
           } catch (err) {
-            console.log('Preferences not loaded, using defaults');
+            if (!axios.isCancel(err)) {
+              console.error('Error fetching preferences:', err);
+            }
           }
         }
-
-        // Daily Challenge logic
-        try {
-          const dailyRes = await axios.get('http://localhost:5000/api/daily-challenge', { headers });
-          if (dailyRes.data && dailyRes.data._id) {
-            setDailyChallenge(dailyRes.data);
-          }
-        } catch (err) {
-          console.warn('Could not fetch daily challenge:', err);
-        }
-        
-
       } catch (err) {
         if (!axios.isCancel(err)) {
-          setFetchError(err.response?.data?.message || 'Failed to fetch data.');
+          setFetchError(err.response?.data?.message || 'Failed to fetch data');
         }
       } finally {
         setLoading(false);
@@ -79,57 +88,123 @@ function ProblemList({ user, theme, setTheme }) {
     return () => cancelTokenSource.cancel('Component unmounted');
   }, [setTheme]);
 
-  useEffect(() => {
-    if (!user) return;
+  // Save points and theme preference to backend when they change
+// Save points to backend when they change
+useEffect(() => {
+  if (!user) return;
 
-    const timer = setTimeout(async () => {
-      setSavingPoints(true);
-      setSaveError(null);
+  const timer = setTimeout(async () => {
+    setSavingPoints(true);
+    setSaveError(null);
 
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        };
-
-        await axios.put(
-          'http://localhost:5000/api/user/preferences',
-          { points, themePreference: theme },
-          { headers }
-        );
-      } catch (err) {
-        console.error('Failed to save preferences:', err);
-        setSaveError('⚠️ Failed to save progress. Please check your connection.');
-      } finally {
-        setSavingPoints(false);
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [points, theme, user]);
-
-  const normalize = (str) => {
-    return (
-      str
-        ?.toLowerCase()
-        .replace(/[^0-9a-z.\-+/=]/gi, '')
-        .replace(/^x=/, '')
-        .trim() || ''
-    );
-  };
-
-  const tryEvaluate = (input) => {
     try {
-      return Function('"use strict";return (' + input + ')')();
-    } catch {
-      return null;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      await axios.put(
+        `${API_BASE_URL}/api/progress`,
+        { points },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (err) {
+      console.error('Failed to save progress:', err);
+      setSaveError('⚠️ Failed to save points. Please check your connection.');
+    } finally {
+      setSavingPoints(false);
+    }
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [points, user]);
+
+
+  // Compares user answer and correct answer mathematically
+  const compareMathExpressions = async (userAnswer, correctAnswer) => {
+    try {
+      if (!userAnswer || !correctAnswer) return false;
+
+      if (userAnswer === correctAnswer) return true;
+
+      const userExpr = simplify(parse(userAnswer));
+      const correctExpr = simplify(parse(correctAnswer));
+
+      if (userExpr.toString() === correctExpr.toString()) return true;
+
+      const testValues = [
+        { x: 1, y: 1, z: 1 },
+        { x: 2, y: 3, z: 1 },
+        { x: -1, y: 5, z: 2 },
+        { x: 0.5, y: 0.25, z: 0.1 },
+      ];
+
+      return testValues.every((values) => {
+        const userVal = evaluate(userExpr, values);
+        const correctVal = evaluate(correctExpr, values);
+        return Math.abs(userVal - correctVal) < 0.0001;
+      });
+    } catch (e) {
+      console.error('Comparison error:', e);
+      return false;
     }
   };
 
-  const checkAnswer = useCallback(() => {
+  // Points by difficulty
+  const calculatePoints = (difficulty) => {
+    const diff = difficulty?.toLowerCase();
+    switch (diff) {
+      case 'easy':
+        return 1;
+      case 'medium':
+        return 3;
+      case 'hard':
+        return 5;
+      default:
+        return 0;
+    }
+  };
+
+  // Update user progress backend API
+  async function updateBackendProgress(problemId, token) {
+    try {
+      if (!problemId) {
+        console.error('No problemId provided to updateBackendProgress');
+        throw new Error('Invalid progress data');
+      }
+
+      const response = await axios.put(
+        `${API_BASE_URL}/api/progress`,
+        { problemId },
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          } 
+        }
+      );
+
+      console.log('Progress saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        console.error('Failed to save progress. Status:', error.response.status, 'Data:', error.response.data);
+        alert('✅ Correct answer, but failed to save progress. Please try again later.');
+      } else if (error.request) {
+        console.error('No response from server:', error.request);
+        alert('Network error: Unable to reach server.');
+      } else {
+        console.error('Error setting up request:', error.message);
+        alert('Unexpected error: ' + error.message);
+      }
+    }
+  }
+
+  // Check user answer and update state/backend
+  const checkAnswer = useCallback(async () => {
     if (!selectedProblem) return;
 
     if (userAnswer.trim() === '') {
@@ -137,52 +212,38 @@ function ProblemList({ user, theme, setTheme }) {
       return;
     }
 
-    const correctRaw = selectedProblem.solution || '';
-    const correctAnswer = correctRaw.trim().toLowerCase();
-    const user = userAnswer.trim().toLowerCase();
-
-    const extractNum = (str) => {
-      const match = str?.match(/-?\d+(\.\d+)?/);
-      return match ? parseFloat(match[0]) : null;
-    };
-
-    const correctNum = extractNum(correctAnswer);
-    const userNum = extractNum(user);
-
-    const normalizedCorrect = normalize(correctRaw);
-    const normalizedUser = normalize(userAnswer);
-
-    const correctVal = tryEvaluate(normalizedCorrect);
-    const userVal = tryEvaluate(normalizedUser);
-
-    const matchByNumber = correctNum !== null && userNum !== null && correctNum === userNum;
-    const matchByString = normalizedCorrect === normalizedUser;
-    const numericMatch =
-      correctVal !== null && userVal !== null && Math.abs(correctVal - userVal) < 0.0001;
-
-    if (matchByNumber || matchByString || numericMatch) {
-      let bonus = 0;
-      switch (selectedProblem.difficulty.toLowerCase()) {
-        case 'easy':
-          bonus = 1;
-          break;
-        case 'medium':
-          bonus = 3;
-          break;
-        case 'hard':
-          bonus = 5;
-          break;
-        default:
-          bonus = 0;
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setFeedback('❌ Please log in to submit answers.');
+        return;
       }
 
-      setPoints((prev) => prev + bonus);
-      setFeedback(`✅ Correct! +${bonus} points`);
-    } else {
-      setFeedback('❌ Incorrect. Try again or check the solution.');
-    }
-  }, [selectedProblem, userAnswer]);
+      const isCorrect = await compareMathExpressions(userAnswer.trim(), selectedProblem.solution || '');
 
+      if (isCorrect) {
+        const bonus = calculatePoints(selectedProblem.difficulty);
+        setPoints((prev) => prev + bonus);
+        setFeedback(`✅ Correct! +${bonus} points`);
+
+        try {
+          // Ensure problemId is a string
+          console.log('Sending problemId:', selectedProblem._id, typeof selectedProblem._id);
+          await updateBackendProgress(String(selectedProblem._id), token);
+        } catch (err) {
+          console.error('Update error:', err);
+          setFeedback('✅ Correct answer, but failed to save progress. Please try again later.');
+        }
+      } else {
+        setFeedback('❌ Incorrect. Try again or check the solution.');
+      }
+    } catch (error) {
+      console.error('Error checking answer:', error);
+      setFeedback('❌ Error checking answer. Please try again.');
+    }
+  }, [selectedProblem, userAnswer, user]);
+
+  // Filter problems by title search
   const filteredProblems = problems.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -250,14 +311,15 @@ function ProblemList({ user, theme, setTheme }) {
               )}
               <h3>
                 {dailyChallenge.title}{' '}
-                <span className={`difficulty ${dailyChallenge.difficulty.toLowerCase()}`}>
-                  ({dailyChallenge.difficulty})
-                </span>
+                {typeof dailyChallenge.difficulty === 'string' && (
+                  <span className={`difficulty ${dailyChallenge.difficulty.toLowerCase()}`}>
+                    ({dailyChallenge.difficulty})
+                  </span>
+                )}
               </h3>
-              <div
-                className="problem-description"
-                dangerouslySetInnerHTML={{ __html: dailyChallenge.description }}
-              />
+              <div className="problem-description">
+                <TeX block math={dailyChallenge.description} />
+              </div>
             </div>
           </div>
         )}
@@ -295,14 +357,15 @@ function ProblemList({ user, theme, setTheme }) {
                 )}
                 <h3>
                   {p.title}{' '}
-                  <span className={`difficulty ${p.difficulty.toLowerCase()}`}>
-                    ({p.difficulty})
-                  </span>
+                  {typeof p.difficulty === 'string' && (
+                    <span className={`difficulty ${p.difficulty.toLowerCase()}`}>
+                      ({p.difficulty})
+                    </span>
+                  )}
                 </h3>
-                <div
-                  className="problem-description"
-                  dangerouslySetInnerHTML={{ __html: p.description }}
-                />
+                <div className="problem-description">
+                  <TeX block math={p.description} />
+                </div>
               </div>
             ))}
           </div>
@@ -325,20 +388,13 @@ function ProblemList({ user, theme, setTheme }) {
               />
             )}
 
-            <div
-              className="problem-content"
-              dangerouslySetInnerHTML={{ __html: selectedProblem.description }}
-            />
+            <div className="problem-content">
+              <TeX block math={selectedProblem.description} />
+            </div>
 
             {!showSolution ? (
               <>
-                <textarea
-                  className="answer-input"
-                  placeholder="Type your answer here..."
-                  value={userAnswer}
-                  onChange={(e) => setUserAnswer(e.target.value)}
-                  rows={3}
-                />
+                <MathInput value={userAnswer} onChange={setUserAnswer} />
 
                 {feedback && (
                   <div className={`feedback ${feedback.startsWith('✅') ? 'success' : 'error'}`}>
@@ -363,13 +419,15 @@ function ProblemList({ user, theme, setTheme }) {
                 <div className="solution-container">
                   <h3>Solution</h3>
                   <div className="solution-content">
-                    {selectedProblem.solution || 'No solution provided.'}
+                    {renderWithMath(selectedProblem.solution || 'No solution provided.')}
                   </div>
 
                   {selectedProblem.answer && (
                     <>
                       <h3>Final Answer</h3>
-                      <div className="final-answer">{selectedProblem.answer}</div>
+                      <div className="final-answer">
+                        {renderWithMath(selectedProblem.answer)}
+                      </div>
                     </>
                   )}
                 </div>
