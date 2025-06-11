@@ -1,7 +1,0 @@
-echo "node_modules/
-.cache/
-*.log
-dist/
-build/
-.next/
-.env" > .gitignore
