@@ -51,7 +51,7 @@ const CreateProblem = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/${endpoint}`,
+        `https://by-taha-website-mathiq.vercel.app/api/${endpoint}`,
         formData,
         {
           headers: {

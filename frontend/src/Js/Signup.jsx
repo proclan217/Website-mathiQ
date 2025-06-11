@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../Css/AuthForm.css';
 
-const API_URL = 'https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api';
+const API_URL = 'https://by-taha-website-mathiq.vercel.app/api';
 
 export default function Signup() {
   const [username, setUsername] = useState('');

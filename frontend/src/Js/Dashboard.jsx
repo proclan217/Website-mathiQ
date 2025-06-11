@@ -15,17 +15,17 @@ const Dashboard = ({ user }) => {
   });
 
   useEffect(() => {
-    fetch('https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/dailychallenges')
+    fetch('https://by-taha-website-mathiq.vercel.app/api/dailychallenges')
       .then(res => res.json())
       .then(setDailyChallenge)
       .catch(err => console.error('Daily challenge error:', err));
 
-    fetch('https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/leaderboard')
+    fetch('https://by-taha-website-mathiq.vercel.app/api/leaderboard')
       .then(res => res.json())
       .then(setLeaderboard)
       .catch(err => console.error('Leaderboard error:', err));
 
-    fetch('https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/progress', {
+    fetch('https://by-taha-website-mathiq.vercel.app/api/progress', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },

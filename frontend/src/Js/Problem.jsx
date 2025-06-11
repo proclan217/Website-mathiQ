@@ -13,7 +13,7 @@ function Problem() {
     async function fetchProblem() {
       setLoading(true);
       try {
-        const response = await axios.get(`https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/problems/${id}solutions`);
+        const response = await axios.get(`https://by-taha-website-mathiq.vercel.app/api/problems/${id}solutions`);
         setProblem(response.data);
       } catch (err) {
         console.error('Error fetching problem:', err);
@@ -30,7 +30,7 @@ function Problem() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/problems/${id}`,
+        `https://by-taha-website-mathiq.vercel.app/api/problems/${id}`,
         { content: solutionContent },
         {
           headers: { Authorization: `Bearer ${token}` }
