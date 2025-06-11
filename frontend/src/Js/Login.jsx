@@ -12,7 +12,7 @@ export default function Login({ setUser }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api/login', {
+      const response = await axios.post('https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/login', {
         email,
         password
       }, {
@@ -98,6 +98,4 @@ export default function Login({ setUser }) {
     </div>
   );
 }
-
-// Login.js (updated JSX only - keep existing logic)
 

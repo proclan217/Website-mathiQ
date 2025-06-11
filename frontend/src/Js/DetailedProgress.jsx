@@ -12,7 +12,7 @@ const DetailedProgress = ({ user }) => {
   });
 
   useEffect(() => {
-    fetch('https://mathiq-eqcaybr35-proclan217s-projects.vercel.app/api/progress', {
+    fetch('https://by-taha-website-mathiq12-nwkwodoav-proclan217s-projects.vercel.app/api/progress', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
